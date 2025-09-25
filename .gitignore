@@ -1,0 +1,6 @@
+#don't want to upload all of wikipedia
+*.bz2
+*.gz
+*.jsonl
+*.db
+*.db-journal

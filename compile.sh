@@ -1,0 +1,1 @@
+g++ -I/include src/*.cpp -o my_program
