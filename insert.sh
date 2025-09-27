@@ -1,0 +1,1 @@
+time pigz -dc links.csv.gz | sqlite3 wikipedia.sqlite ".read ./sql/links.sql"

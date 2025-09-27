@@ -5,7 +5,7 @@ import re
 page_sql_gz = "enwiki-latest-page.sql.gz"
 pagelinks_sql_gz = "enwiki-latest-pagelinks.sql.gz"
 db_file = "wikipedia.db"
-batch_size = 100000
+batch_size = 500000
 
 insert_re = re.compile(r"INSERT INTO `\w+` VALUES (.+);")
 
@@ -42,6 +42,9 @@ def parse_pagelinks_values(values_str):
         pl_from = int(match.group(1))
         pl_from_namespace = int(match.group(2))
         pl_target_id = int(match.group(3))
+        # Only namespace 0 (articles)
+        if pl_from_namespace != 0:
+            continue
         #print(match)
         #print(pl_from, pl_from_namespace, pl_target_id)
         records.append((pl_from, pl_from_namespace, pl_target_id))
@@ -68,6 +71,7 @@ CREATE TABLE IF NOT EXISTS pagelinks (
 """)
 conn.commit()
 
+'''
 print("Loading pages")
 with gzip.open(page_sql_gz, "rt", encoding="utf-8", errors="ignore") as f:
     batch = []
@@ -91,10 +95,11 @@ print("Loading pagelinks...")
 with gzip.open(pagelinks_sql_gz, "rt", encoding="utf-8", errors="ignore") as f:
     batch = []
     for line in f:
+        print(line)
         m = insert_re.search(line)
         if m:
             values_str = m.group(1)
-            batch.extend(parse_pagelinks_values(values_str))
+            #batch.extend(parse_pagelinks_values(values_str))
             if len(batch) >= batch_size:
                 c.executemany("INSERT OR IGNORE INTO pagelinks (pl_from, pl_from_namespace, pl_target_id) VALUES (?, ?, ?)", batch)                
                 conn.commit()
@@ -108,7 +113,6 @@ with gzip.open(pagelinks_sql_gz, "rt", encoding="utf-8", errors="ignore") as f:
 c.execute("CREATE INDEX IF NOT EXISTS idx_page_id ON page(page_id)")
 c.execute("CREATE INDEX IF NOT EXISTS idx_pagelinks_from ON pagelinks(pl_from)")
 conn.commit()
-'''
 
 conn.close()
 print("Done. SQLite DB ready:", db_file)
