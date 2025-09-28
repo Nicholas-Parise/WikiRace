@@ -6,3 +6,4 @@
 *.db-journal
 *.sqlite
 *.csv
+*.tsv
