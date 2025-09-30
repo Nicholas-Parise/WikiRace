@@ -1,6 +1,4 @@
 CREATE INDEX IF NOT EXISTS idx_pages_id ON pages(page_id);
-CREATE INDEX IF NOT EXISTS idx_links_from ON links(from_id);
-CREATE INDEX IF NOT EXISTS idx_links_target ON links(target_id);
 
 -- delete pages with redirects but no actual redirect 
 BEGIN TRANSACTION;
@@ -36,3 +34,12 @@ DELETE FROM links
 WHERE NOT EXISTS (SELECT 1 FROM pages p WHERE p.page_id = links.from_id)
    OR NOT EXISTS (SELECT 1 FROM pages p WHERE p.page_id = links.target_id);
 COMMIT;
+
+VACUUM;
+
+CREATE INDEX IF NOT EXISTS idx_links_from ON links(from_id);
+CREATE INDEX IF NOT EXISTS idx_links_target ON links(target_id);
+
+-- create virtual table for searching
+CREATE VIRTUAL TABLE page_titles USING fts5(title);
+INSERT INTO page_titles (title) SELECT title FROM pages;

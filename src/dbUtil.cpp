@@ -28,6 +28,35 @@ std::string dbUtil::getTitle(long pageId)
 }
 
 
+
+std::vector<std::string> dbUtil::getTitleCandidates(std::string title)
+{
+    const char *sql = "SELECT title FROM page_titles WHERE page_titles MATCH ? ORDER BY rank LIMIT 10;";
+    sqlite3_stmt *stmt = nullptr;
+    std::vector<std::string> results;
+
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK)
+    {
+        std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl; 
+        return results;
+    }
+
+    sqlite3_bind_text(stmt, 1, title.c_str(), -1, SQLITE_TRANSIENT);
+
+    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) { 
+        const unsigned char *text = sqlite3_column_text(stmt, 0); 
+        if (text) 
+        results.emplace_back(reinterpret_cast<const char *>(text)); 
+    } 
+    if (rc != SQLITE_DONE) { 
+        std::cerr << "Error stepping through results: " << sqlite3_errmsg(db) << std::endl; 
+    } 
+    sqlite3_finalize(stmt); 
+    return results;
+}
+
+
 // returns an id given a pages name (useful for input)
 long dbUtil::getId(std::string title){
     std::string sql = "SELECT page_id FROM pages WHERE title = " + title + ";";
