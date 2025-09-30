@@ -5,5 +5,10 @@
 *.db
 *.db-journal
 *.sqlite
+*.sqlite-journal
 *.csv
 *.tsv
+# env stuff
+*.vscode
+# build stuff
+/build/*
