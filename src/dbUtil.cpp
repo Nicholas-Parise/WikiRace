@@ -79,6 +79,14 @@ long dbUtil::getId(std::string title){
     return result;
 }
 
+// spinner loading bar
+void dbUtil::spinner(int &state) {
+    const char symbols[] = {'|', '/', '-', '\\'};
+    std::cout << "\rLoading links " << symbols[state % 4] << std::flush;
+    state++;
+}
+
+
 // create map of all links, and return pointer
 std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks(void){
 
@@ -103,6 +111,9 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks(void){
         return links;
     }
 
+    int spinnerState = 0;
+    long rowCount = 0;
+
     while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
         long source = sqlite3_column_int64(stmt, 0);
         long target = sqlite3_column_int64(stmt, 1);
@@ -111,6 +122,13 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks(void){
             (*links)[source].reserve(AVG_LINKS);
 
         (*links)[source].push_back(target);
+
+
+        rowCount++;
+        if (rowCount % 1000000 == 0) {
+            spinner(spinnerState);
+        }
+
     }
 
     if (rc != SQLITE_DONE) {
