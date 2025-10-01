@@ -15,4 +15,7 @@ public:
 
 private:
     sqlite3 *db;
+
+    static const long NUM_PAGES = 18612192;
+    static const int AVG_LINKS = 22;
 };

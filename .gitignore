@@ -11,5 +11,4 @@
 # env stuff
 *.vscode
 # build stuff
-/build/*
 *.exe

@@ -83,6 +83,8 @@ long dbUtil::getId(std::string title){
 std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks(void){
 
     std::unordered_map<long, std::vector<long>>* links = new std::unordered_map<long, std::vector<long>>;
+    links->reserve(NUM_PAGES);
+    
     const char *sql = "SELECT from_id, target_id FROM links;";
     sqlite3_stmt *stmt = nullptr;
 
@@ -106,7 +108,7 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks(void){
         long target = sqlite3_column_int64(stmt, 1);
 
         if ((*links)[source].empty())
-            (*links)[source].reserve(10);
+            (*links)[source].reserve(AVG_LINKS);
 
         (*links)[source].push_back(target);
     }

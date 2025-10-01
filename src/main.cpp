@@ -31,7 +31,6 @@ long selectCandidate(const std::vector<std::pair<long, std::string>>& candidates
 long promptForArticle(dbUtil& databaseUtil, std::string first_second) {
 
     std::string input;
-    long start;
 
     while (true){
         std::cout << "Enter "<<first_second<<" article name: ";
