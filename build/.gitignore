@@ -1,0 +1,34 @@
+# CMake build output
+build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cbp # CodeBlocks project files
+*.depend # Dependency files
+*.layout # CodeBlocks layout files
+*.mk # Makefiles
+CTestTestfile.cmake
+_CPack_Packages/
+
+# ninja ???
+*.ninja_log
+*.ninja
+*.ninja_deps
+
+# build artifacts
+*.o
+*.obj
+*.lo
+*.la
+*.so
+*.a
+*.lib
+*.dll
+*.exe
+*.out
+*.bin
+*.pdb
+*.ilk
+*.log
+*.tmp
