@@ -1,7 +1,7 @@
 #include <iostream>
 #include "sqlite3.h"
 #include "dbUtil.h"
-
+#include "graph.h"
 
 long selectCandidate(const std::vector<std::pair<long, std::string>>& candidates) {
     std::string line;
