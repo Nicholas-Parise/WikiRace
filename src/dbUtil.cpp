@@ -144,7 +144,6 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks(void){
         sqlite3_free(errmsg);
     }
 
-
     std::cout<<"\rFinished Loading links"<<std::endl;
 
     return links;
