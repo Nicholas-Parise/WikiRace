@@ -79,6 +79,8 @@ int main(){
 
     dbUtil databaseUtil(db);
 
+    databaseUtil.loadLinks();
+
     long first_article = promptForArticle(databaseUtil, "first");
 
     std::cout<<first_article<<std::endl;

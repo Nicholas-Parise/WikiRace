@@ -4,20 +4,18 @@
 // returns a pages name from it's ID (useful for printing)
 std::string dbUtil::getTitle(long pageId)
 {
-    std::string sql = "SELECT title FROM pages WHERE page_id = " + std::to_string(pageId) + ";";
+    std::string sql= "SELECT title FROM pages WHERE page_id = "+std::to_string(pageId)+";";
     sqlite3_stmt *stmt = nullptr;
 
     int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
-    if (rc != SQLITE_OK)
-    {
+    if (rc != SQLITE_OK){
         std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
         return "ERROR";
     }
 
     std::string result;
     rc = sqlite3_step(stmt);
-    if (rc == SQLITE_ROW)
-    {
+    if (rc == SQLITE_ROW){
         const unsigned char *text = sqlite3_column_text(stmt, 0);
         if (text)
             result = reinterpret_cast<const char *>(text);
@@ -36,8 +34,7 @@ std::vector<std::pair<long, std::string>> dbUtil::getTitleCandidates(std::string
     std::vector<std::pair<long, std::string>> results;
 
     int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
-    if (rc != SQLITE_OK)
-    {
+    if (rc != SQLITE_OK){
         std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl; 
         return results;
     }
@@ -61,23 +58,72 @@ std::vector<std::pair<long, std::string>> dbUtil::getTitleCandidates(std::string
 
 // returns an id given a pages name (useful for input)
 long dbUtil::getId(std::string title){
-    std::string sql = "SELECT page_id FROM pages WHERE title = " + title + ";";
+    const char *sql  = "SELECT page_id FROM pages WHERE title = ?";
     sqlite3_stmt *stmt = nullptr;
 
-    int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
-    if (rc != SQLITE_OK)
-    {
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK){
         std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
         return -1;
     }
 
+    sqlite3_bind_text(stmt, 1, title.c_str(), -1, SQLITE_TRANSIENT);
+
     long result = -1;
     rc = sqlite3_step(stmt);
-    if (rc == SQLITE_ROW)
-    {
+    if (rc == SQLITE_ROW){
         result = sqlite3_column_int64(stmt, 0);
     }
 
     sqlite3_finalize(stmt);
     return result;
+}
+
+// create map of all links, and return pointer
+std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks(void){
+
+    std::unordered_map<long, std::vector<long>>* links = new std::unordered_map<long, std::vector<long>>;
+    const char *sql = "SELECT from_id, target_id FROM links;";
+    sqlite3_stmt *stmt = nullptr;
+
+    char* errmsg = nullptr;
+    int rc = sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, &errmsg);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Failed to begin transaction: " << errmsg << std::endl;
+        sqlite3_free(errmsg);
+        return links;
+    }
+
+
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+        return links;
+    }
+
+    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+        long source = sqlite3_column_int64(stmt, 0);
+        long target = sqlite3_column_int64(stmt, 1);
+
+        if ((*links)[source].empty())
+            (*links)[source].reserve(10);
+
+        (*links)[source].push_back(target);
+    }
+
+    if (rc != SQLITE_DONE) {
+        std::cerr << "Error reading rows: " << sqlite3_errmsg(db) << std::endl;
+    }
+
+    sqlite3_finalize(stmt);
+
+    // commit
+    rc = sqlite3_exec(db, "COMMIT;", nullptr, nullptr, &errmsg);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Failed to commit transaction: " << errmsg << std::endl;
+        sqlite3_free(errmsg);
+    }
+
+
+    return links;
 }
