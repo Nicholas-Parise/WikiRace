@@ -19,7 +19,7 @@ SET target_id = (
 WHERE target_id IN (SELECT source_id FROM redirects);
 
 -- second run
-UPDATE links
+UPDATE OR IGNORE links
 SET target_id = (
     SELECT target_id
     FROM redirects r
@@ -41,5 +41,7 @@ CREATE INDEX IF NOT EXISTS idx_links_from ON links(from_id);
 CREATE INDEX IF NOT EXISTS idx_links_target ON links(target_id);
 
 -- create virtual table for searching
-CREATE VIRTUAL TABLE page_titles USING fts5(title);
-INSERT INTO page_titles (title) SELECT title FROM pages;
+-- CREATE VIRTUAL TABLE page_titles USING fts5(title);
+-- INSERT INTO page_titles (title) SELECT title FROM pages;
+CREATE VIRTUAL TABLE page_titles USING fts5(page_id UNINDEXED, title);
+INSERT INTO page_titles(page_id, title) SELECT page_id, title FROM pages;

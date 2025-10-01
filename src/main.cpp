@@ -3,7 +3,7 @@
 #include "dbUtil.h"
 
 
-int selectCandidate(const std::vector<std::string>& candidates) {
+long selectCandidate(const std::vector<std::pair<long, std::string>>& candidates) {
     std::string line;
     while (true){
         std::cout << "Which candidate matches the article the closest? Enter the number, or 0 to type a new name: ";
@@ -17,8 +17,10 @@ int selectCandidate(const std::vector<std::string>& candidates) {
             continue;
         }
 
-         if (selection >= 0 && selection <= static_cast<int>(candidates.size())) {
-            return selection;
+        if (selection == 0) {
+            return 0; // type new name
+        }else if (selection >= 1 && selection <= static_cast<int>(candidates.size())) {
+            return candidates[selection - 1].first; // return the page ID
         } else {
             std::cout << "Please enter a valid number from the list, or 0 to type a new name." << std::endl;
         }
@@ -26,7 +28,7 @@ int selectCandidate(const std::vector<std::string>& candidates) {
 }
 
 
-std::string promptForArticle(dbUtil& databaseUtil, std::string first_second) {
+long promptForArticle(dbUtil& databaseUtil, std::string first_second) {
 
     std::string input;
     long start;
@@ -36,7 +38,7 @@ std::string promptForArticle(dbUtil& databaseUtil, std::string first_second) {
 
         std::getline(std::cin, input);
 
-        std::vector<std::string> candidates = databaseUtil.getTitleCandidates(input);
+        std::vector<std::pair<long, std::string>> candidates = databaseUtil.getTitleCandidates(input);
 
         std::cout << "which candidates matches the article the closest: " << std::endl;
 
@@ -46,7 +48,7 @@ std::string promptForArticle(dbUtil& databaseUtil, std::string first_second) {
         }
         
         for (int i = 0; i < candidates.size(); i++){
-            std::cout << i + 1 << ": " << candidates[i] << std::endl;
+            std::cout << i + 1 << ": " << candidates[i].second << std::endl;
         }
 
         int choice = selectCandidate(candidates);
@@ -54,7 +56,7 @@ std::string promptForArticle(dbUtil& databaseUtil, std::string first_second) {
         if (choice == 0) {
             continue;
         } else {
-            return candidates[choice-1];
+            return choice;
         }
     }
 }
@@ -77,11 +79,11 @@ int main(){
 
     dbUtil databaseUtil(db);
 
-    std::string first_article = promptForArticle(databaseUtil, "first");
+    long first_article = promptForArticle(databaseUtil, "first");
 
     std::cout<<first_article<<std::endl;
 
-    std::string second_article = promptForArticle(databaseUtil, "second");
+    long second_article = promptForArticle(databaseUtil, "second");
 
     std::cout<<second_article<<std::endl;
 
