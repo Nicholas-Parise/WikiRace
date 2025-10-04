@@ -93,7 +93,7 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks(void){
     std::unordered_map<long, std::vector<long>>* links = new std::unordered_map<long, std::vector<long>>;
     links->reserve(NUM_PAGES);
     
-    const char *sql = "SELECT from_id, target_id FROM links;";
+    const char *sql = "SELECT source_id, target_id FROM links;";
     sqlite3_stmt *stmt = nullptr;
 
     char* errmsg = nullptr;

@@ -1,8 +1,11 @@
 CREATE TABLE IF NOT EXISTS links (
-    from_id INTEGER,
-    target_id INTEGER,
-    PRIMARY KEY (from_id, target_id)
+	source_id INTEGER,
+	target_id INTEGER,
+	PRIMARY KEY (source_id, target_id)
 );
-.mode csv
-.separator ,
-.import links.csv links
+
+INSERT INTO links (source_id, target_id)
+SELECT tl.from_id, p.page_id
+FROM temp_links tl
+JOIN linktarget lt ON tl.target_id = lt.id
+JOIN pages p ON lt.page_name = p.title;
