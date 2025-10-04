@@ -78,7 +78,9 @@ int main(){
 
     dbUtil databaseUtil(db);
 
-    databaseUtil.loadLinks();
+    //databaseUtil.loadLinks();
+
+    databaseUtil.loadLinks_grouped();
 
     long first_article = promptForArticle(databaseUtil, "first");
 

@@ -1,5 +1,26 @@
 #include "dbUtil.h"
 #include <iostream>
+#include <sstream>
+
+
+// spinner loading bar
+void dbUtil::spinner(int &state) {
+    const char symbols[] = {'|', '/', '-', '\\'};
+    std::cout << "\rLoading links " << symbols[state % 4] << std::flush;
+    state++;
+}
+
+void dbUtil::parseTargets(const std::string& s, std::vector<long>& out) {
+    std::stringstream ss(s);
+    std::string token;
+    while (std::getline(ss, token, ' ')) {
+        if (!token.empty()) {
+            out.push_back(std::stol(token));
+        }
+    }
+}
+
+
 
 // returns a pages name from it's ID (useful for printing)
 std::string dbUtil::getTitle(long pageId)
@@ -79,12 +100,7 @@ long dbUtil::getId(std::string title){
     return result;
 }
 
-// spinner loading bar
-void dbUtil::spinner(int &state) {
-    const char symbols[] = {'|', '/', '-', '\\'};
-    std::cout << "\rLoading links " << symbols[state % 4] << std::flush;
-    state++;
-}
+
 
 
 // create map of all links, and return pointer
@@ -148,3 +164,69 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks(void){
 
     return links;
 }
+
+
+
+// create map of all links, and return pointer
+std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped(void){
+
+    std::unordered_map<long, std::vector<long>>* links = new std::unordered_map<long, std::vector<long>>;
+    links->reserve(NUM_PAGES);
+    
+    const char *sql = "SELECT source_id, targets FROM links_grouped;";
+    sqlite3_stmt *stmt = nullptr;
+
+    char* errmsg = nullptr;
+    int rc = sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, &errmsg);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Failed to begin transaction: " << errmsg << std::endl;
+        sqlite3_free(errmsg);
+        return links;
+    }
+
+
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+        return links;
+    }
+
+    int spinnerState = 0;
+    long rowCount = 0;
+
+    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+        long source = sqlite3_column_int64(stmt, 0);
+
+        const unsigned char* targetsText = sqlite3_column_text(stmt, 1);
+        if (!targetsText) continue;
+
+        std::vector<long> targets;
+        parseTargets(reinterpret_cast<const char*>(targetsText),targets);
+
+        (*links)[source] = std::move(targets);
+
+        rowCount++;
+        if (rowCount % 100000 == 0) {
+            spinner(spinnerState);
+        }
+
+    }
+
+    if (rc != SQLITE_DONE) {
+        std::cerr << "Error reading rows: " << sqlite3_errmsg(db) << std::endl;
+    }
+
+    sqlite3_finalize(stmt);
+
+    // commit
+    rc = sqlite3_exec(db, "COMMIT;", nullptr, nullptr, &errmsg);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Failed to commit transaction: " << errmsg << std::endl;
+        sqlite3_free(errmsg);
+    }
+
+    std::cout<<"\rFinished Loading links"<<std::endl;
+
+    return links;
+}
+
