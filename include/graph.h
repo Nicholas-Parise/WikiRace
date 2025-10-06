@@ -15,5 +15,7 @@ private:
     std::unordered_map<long, std::vector<long>>* links;
     std::vector<bool> visited;
 
-    long dfs(long start, long end);
+    std::vector<long> bfs(long start, long end);
+
+    static const int MAX_DEPTH = 15;
 };

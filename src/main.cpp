@@ -73,8 +73,8 @@ long promptForArticle(dbUtil& databaseUtil, std::string first_second) {
 
 
 int main(){
-    time_t start;
-    time(&start);
+    time_t start_t;
+    time(&start_t);
 
     sqlite3 *db;
     int rc = sqlite3_open("../../wikipedia.sqlite", &db);
@@ -95,10 +95,10 @@ int main(){
 
     std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadLinks_grouped();
 
-    time_t end;
-    time(&end);
+    time_t end_t;
+    time(&end_t);
 
-    std::cout << difftime(end, start) << std::endl;
+    std::cout << "It took " << difftime(end_t, start_t) << " seconds." << std::endl;
 
     while (true) {
 
@@ -108,13 +108,18 @@ int main(){
 
         std::cout << first_article << std::endl;
 
-        std::cout << links->at(first_article)[0] << std::endl;
-
         long second_article = promptForArticle(databaseUtil, "second");
 
         if (second_article == -1) { break; }
 
         std::cout << second_article << std::endl;
+
+        graph wikiGraph(links);
+        std::vector<std::string> output = wikiGraph.search(first_article, second_article);
+        for (std::string str: output){
+            std::cout << str << std::endl;
+        }
+        
     }
 
 }
