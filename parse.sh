@@ -34,14 +34,15 @@ echo "Trimming Page File"
 # now apply escape characters to string, and only keep data until the page_is_redirect column
 # ?,"?,?,... -> ?,"?",?
 # so went from INSERT INTO page (151,0,'an_example',0.......) - > 151,"an_example",0\n
-time pigz  -dc $PAGES_FILENAME \
-	| sed -E 's/^INSERT INTO `page` VALUES //' \
-    | sed -E 's/^\(//; s/\);?$//' \
-    | sed 's/),(/\'$'\n/g' \
-	| egrep "^[0-9]+,0," \
-	| sed -e $"s/,0,'/\t/" \
-	| sed -e $"s/',[^,]*,\([01]\).*/\t\1/" \
-	| pigz --fast > pages.tsv.gz.tmp
+time pigz -dc $PAGES_FILENAME \
+  | sed -E 's/^INSERT INTO `page` VALUES //' \
+  | sed -E 's/^\(//; s/\);?$//' \
+  | sed "s/),(/\'$'\n/g" \
+  | egrep "^[0-9]+,0," \
+  | sed -e "s/,0,'/\t/" \
+  | sed -e "s/',/\t/" \
+  | awk -F'\t' '{ split($3,a,","); print $1 "\t" $2 "\t" a[1] }' \
+  | pigz --fast > pages.tsv.gz.tmp
 mv pages.tsv.gz.tmp pages.tsv.gz
 
 
