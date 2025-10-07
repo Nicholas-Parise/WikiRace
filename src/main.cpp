@@ -1,7 +1,9 @@
 #include <iostream>
+#include <ctime>
 #include "sqlite3.h"
 #include "dbUtil.h"
 #include "graph.h"
+
 
 long selectCandidate(const std::vector<std::pair<long, std::string>>& candidates) {
     std::string line;
@@ -28,14 +30,23 @@ long selectCandidate(const std::vector<std::pair<long, std::string>>& candidates
 }
 
 
+/* cin that prompts user to enter an article name and select one of the found articles
+* 
+* Returns:
+* - ID of article selected
+* - or -1 if user enters ":exit" to quit
+*/
+
 long promptForArticle(dbUtil& databaseUtil, std::string first_second) {
 
     std::string input;
 
     while (true){
-        std::cout << "Enter "<<first_second<<" article name: ";
+        std::cout << "Enter "<<first_second<<" article name (or :exit): ";
 
         std::getline(std::cin, input);
+
+        if (input == ":exit") { return -1; }
 
         std::vector<std::pair<long, std::string>> candidates = databaseUtil.getTitleCandidates(input);
 
@@ -62,9 +73,11 @@ long promptForArticle(dbUtil& databaseUtil, std::string first_second) {
 
 
 int main(){
+    time_t start_t;
+    time(&start_t);
 
     sqlite3 *db;
-    int rc = sqlite3_open("wikipedia.sqlite", &db);
+    int rc = sqlite3_open("../../wikipedia.sqlite", &db);
 
     if (rc)
     {
@@ -80,14 +93,33 @@ int main(){
 
     //databaseUtil.loadLinks();
 
-    databaseUtil.loadLinks_grouped();
+    std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadLinks_grouped();
 
-    long first_article = promptForArticle(databaseUtil, "first");
+    time_t end_t;
+    time(&end_t);
 
-    std::cout<<first_article<<std::endl;
+    std::cout << "It took " << difftime(end_t, start_t) << " seconds." << std::endl;
 
-    long second_article = promptForArticle(databaseUtil, "second");
+    while (true) {
 
-    std::cout<<second_article<<std::endl;
+        long first_article = promptForArticle(databaseUtil, "first");
+
+        if (first_article == -1) { break; }
+
+        std::cout << first_article << std::endl;
+
+        long second_article = promptForArticle(databaseUtil, "second");
+
+        if (second_article == -1) { break; }
+
+        std::cout << second_article << std::endl;
+
+        graph wikiGraph(links);
+        std::vector<std::string> output = wikiGraph.search(first_article, second_article);
+        for (std::string str: output){
+            std::cout << str << std::endl;
+        }
+        
+    }
 
 }

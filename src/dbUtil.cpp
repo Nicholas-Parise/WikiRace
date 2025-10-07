@@ -1,6 +1,7 @@
 #include "dbUtil.h"
 #include <iostream>
 #include <sstream>
+#include <charconv>
 
 
 // spinner loading bar
@@ -10,7 +11,8 @@ void dbUtil::spinner(int &state) {
     state++;
 }
 
-void dbUtil::parseTargets(const std::string& s, std::vector<long>& out) {
+
+/*void dbUtil::parseTargets(const std::string& s, std::vector<long>& out) {
     std::stringstream ss(s);
     std::string token;
     while (std::getline(ss, token, ' ')) {
@@ -18,7 +20,32 @@ void dbUtil::parseTargets(const std::string& s, std::vector<long>& out) {
             out.push_back(std::stol(token));
         }
     }
+}*/
+
+
+
+void dbUtil::parseTargets(const std::string& s, std::vector<long>& out) {
+    const char* p = s.data();
+    const char* end = s.data() + s.size();
+    out.clear();
+
+    while (p < end) {
+        // skip spaces
+        while (p < end && *p == ' ') ++p;
+        if (p == end) break;
+
+        long val;
+        auto [ptr, ec] = std::from_chars(p, end, val);
+        if (ec == std::errc()) {
+            out.push_back(val);
+            p = ptr;
+        }
+        else {
+            break; // stop if bad data
+        }
+    }
 }
+
 
 
 
