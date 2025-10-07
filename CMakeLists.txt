@@ -24,3 +24,6 @@ add_executable(wikiRace ${CPP_SOURCES} ${SQLITE_SOURCE})
 
 # Compile SQLite with FTS5
 set_source_files_properties(${SQLITE_SOURCE} PROPERTIES COMPILE_FLAGS "-DSQLITE_ENABLE_FTS5")
+
+find_package(Threads REQUIRED)
+target_link_libraries(wikiRace PRIVATE Threads::Threads dl)
