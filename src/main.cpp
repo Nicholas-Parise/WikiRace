@@ -33,10 +33,9 @@ long selectCandidate(const std::vector<std::pair<long, std::string>>& candidates
 /* cin that prompts user to enter an article name and select one of the found articles
 * 
 * Returns:
-* - ID of article selected
-* - or -1 if user enters ":exit" to quit
+* ID of article selected
+* or -1 if user enters ":exit" to quit
 */
-
 long promptForArticle(dbUtil& databaseUtil, std::string first_second) {
 
     std::string input;
@@ -77,7 +76,7 @@ int main(){
     time(&start_t);
 
     sqlite3 *db;
-    int rc = sqlite3_open("../../wikipedia.sqlite", &db);
+    int rc = sqlite3_open("../wikipedia.sqlite", &db);
 
     if (rc)
     {
@@ -91,9 +90,9 @@ int main(){
 
     dbUtil databaseUtil(db);
 
-    //databaseUtil.loadLinks();
-
     std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadLinks_grouped();
+
+    graph wikiGraph(links, databaseUtil);
 
     time_t end_t;
     time(&end_t);
@@ -113,8 +112,7 @@ int main(){
         if (second_article == -1) { break; }
 
         std::cout << second_article << std::endl;
-
-        graph wikiGraph(links);
+ 
         std::vector<std::string> output = wikiGraph.search(first_article, second_article);
         for (std::string str: output){
             std::cout << str << std::endl;

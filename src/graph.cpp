@@ -1,10 +1,10 @@
 #include "graph.h"
-#include "dbUtil.h"
 #include <queue>
 #include <unordered_set>
 #include <unordered_map>
 #include <iostream>
 #include <ctime>
+#include <algorithm>
 
 std::vector<std::string> graph::search(long start, long end) {
     time_t start_t;
@@ -16,16 +16,9 @@ std::vector<std::string> graph::search(long start, long end) {
     output_long = bfs(start, end);
 
     if (output_long.size() == 0) { return output; }
-    sqlite3* db;
-    int rc = sqlite3_open("../../wikipedia.sqlite", &db);
-    if (rc)
-    {
-        std::cerr << "Can't open database (for fetching page titles): " << sqlite3_errmsg(db) << std::endl;
-        return output;
-    }
+   
     std::cout << "Found a path with " << output_long.size() << " steps:" << std::endl;
 
-    dbUtil databaseUtil(db);
     for (long l : output_long) {
         std::cout << databaseUtil.getTitle(l) << std::endl;
     }
@@ -84,6 +77,6 @@ std::vector<long> graph::bfs(long start, long end) {
 
     for (int v = end; v != -1; v = parent[v])
         path.push_back(v);
-    reverse(path.begin(), path.end());
+    std::reverse(path.begin(), path.end());
     return path;
 }
