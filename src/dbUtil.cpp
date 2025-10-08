@@ -78,6 +78,7 @@ std::string dbUtil::getTitle(long pageId)
 std::vector<std::pair<long, std::string>> dbUtil::getTitleCandidates(std::string title)
 {
     const char *sql = "SELECT page_id, title FROM page_titles WHERE page_titles MATCH ? ORDER BY rank LIMIT 10;";
+        
     sqlite3_stmt *stmt = nullptr;
     std::vector<std::pair<long, std::string>> results;
 
