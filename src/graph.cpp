@@ -41,7 +41,7 @@ std::vector<long> graph::bfs(long start, long end) {
 
     int depth = 0;
 
-    q.push({start, -1});
+    q.push({start, 1});
     parent[start] = -1;
     
     while (!q.empty()) {
