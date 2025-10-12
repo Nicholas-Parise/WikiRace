@@ -9,6 +9,7 @@ public:
     graph(std::unordered_map<long, std::vector<long>>* link, dbUtil &db) : links(link), databaseUtil(db) {};
 
     std::vector<std::string> search(long start, long end);
+    std::vector<std::pair<long, double>> pageRank(double threshold);
 
 private:
     std::unordered_map<long, std::vector<long>>* links;
