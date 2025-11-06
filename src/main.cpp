@@ -90,7 +90,8 @@ int main(){
 
     dbUtil databaseUtil(db);
 
-    std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadLinks_grouped();
+    //std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadLinks_grouped();
+    std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadLinks_grouped_Threaded();
 
     graph wikiGraph(links, databaseUtil);
 
