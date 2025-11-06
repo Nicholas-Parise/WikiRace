@@ -56,7 +56,7 @@ long promptForArticle(dbUtil& databaseUtil, std::string first_second) {
             continue;
         }
         
-        for (int i = 0; i < candidates.size(); i++){
+        for (size_t  i = 0; i < candidates.size(); i++){
             std::cout << i + 1 << ": " << candidates[i].second << std::endl;
         }
 
@@ -90,7 +90,8 @@ int main(){
 
     dbUtil databaseUtil(db);
 
-    std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadLinks_grouped();
+    //std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadLinks_grouped();
+    std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadLinks_grouped_Threaded();
 
     graph wikiGraph(links, databaseUtil);
 

@@ -3,6 +3,10 @@
 #include <sstream>
 #include <charconv>
 
+#include <omp.h>
+#include <queue>
+#include <mutex>
+#include <thread>
 
 // spinner loading bar
 void dbUtil::spinner(int &state) {
@@ -10,18 +14,6 @@ void dbUtil::spinner(int &state) {
     std::cout << "\rLoading links " << symbols[state % 4] << std::flush;
     state++;
 }
-
-
-/*void dbUtil::parseTargets(const std::string& s, std::vector<long>& out) {
-    std::stringstream ss(s);
-    std::string token;
-    while (std::getline(ss, token, ' ')) {
-        if (!token.empty()) {
-            out.push_back(std::stol(token));
-        }
-    }
-}*/
-
 
 
 void dbUtil::parseTargets(const std::string& s, std::vector<long>& out) {
@@ -45,8 +37,6 @@ void dbUtil::parseTargets(const std::string& s, std::vector<long>& out) {
         }
     }
 }
-
-
 
 
 // returns a pages name from it's ID (useful for printing)
@@ -78,6 +68,7 @@ std::string dbUtil::getTitle(long pageId)
 std::vector<std::pair<long, std::string>> dbUtil::getTitleCandidates(std::string title)
 {
     const char *sql = "SELECT page_id, title FROM page_titles WHERE page_titles MATCH ? ORDER BY rank LIMIT 10;";
+        
     sqlite3_stmt *stmt = nullptr;
     std::vector<std::pair<long, std::string>> results;
 
@@ -257,3 +248,104 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped(void){
     return links;
 }
 
+
+
+struct Row {
+    long source;
+    std::string text;
+};
+
+// create map of all links, and return pointer
+std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped_Threaded(void){
+
+    std::unordered_map<long, std::vector<long>>* links = new std::unordered_map<long, std::vector<long>>;
+    links->reserve(NUM_PAGES);
+    
+    std::queue<Row> q;
+    std::mutex qtex;
+    bool done = false; 
+    
+    const char *sql = "SELECT source_id, targets FROM links_grouped;";
+    sqlite3_stmt *stmt = nullptr;
+
+    char* errmsg = nullptr;
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) {
+        std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
+        return links;
+    }
+
+    int spinnerState = 0;
+    long rowCount = 0;
+
+    std::thread producer([&](){
+        while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+            long source = sqlite3_column_int64(stmt, 0);
+
+            const unsigned char* targetsText = sqlite3_column_text(stmt, 1);
+            if (!targetsText) continue;
+
+            Row row{source, reinterpret_cast<const char*>(targetsText)};
+
+            {
+                std::lock_guard<std::mutex> lock(qtex);
+                q.push(std::move(row));
+            }
+
+            rowCount++;
+            if (rowCount % 100000 == 0) {
+                spinner(spinnerState);
+            }
+        }
+
+        if (rc != SQLITE_DONE) {
+            std::cerr << "Error reading rows: " << sqlite3_errmsg(db) << std::endl;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(qtex);
+            done = true;
+        }
+    });
+
+    #pragma omp parallel
+    {
+        std::vector<long> local;
+
+        while(true){
+            Row row;
+            bool got_work = false;
+
+            {
+                // get some work to do. Lock queue and take from it.
+                std::lock_guard<std::mutex> lock(qtex);
+                if(!q.empty()){
+                    row = std::move(q.front());
+                    q.pop();
+                    got_work = true;
+                }else if (done){
+                    break;
+                }
+            }
+
+            if(!got_work) continue;
+            // clear local copy and parse data.
+            local.clear();
+            parseTargets(row.text, local);
+            
+            // with our finished local copy move to map
+            #pragma omp critical
+            {
+                (*links)[row.source] = std::move(local);
+            }
+        }
+    }
+
+
+    producer.join();
+    sqlite3_finalize(stmt);
+
+    std::cout<<"\rFinished Loading links"<<std::endl;
+
+    return links;
+}
