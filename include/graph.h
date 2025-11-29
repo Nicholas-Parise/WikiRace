@@ -10,6 +10,9 @@ public:
 
     std::vector<std::string> search(long start, long end);
     std::vector<std::pair<long, double>> pageRank(double threshold);
+    std::vector<std::pair<long, double>> pageRankSharedMemory(double threshold, int threads);
+
+    static void reduceGraphSize(double fractionalSize, std::unordered_map<long, std::vector<long>>* links);
 
 private:
     std::unordered_map<long, std::vector<long>>* links;

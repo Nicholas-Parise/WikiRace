@@ -13,6 +13,7 @@ public:
     std::vector<std::pair<long, std::string>> getTitleCandidates(std::string title);
     std::unordered_map<long, std::vector<long>>* loadLinks(void); // legacy, not used anymore it's way to slow
     std::unordered_map<long, std::vector<long>>* loadLinks_grouped(void);
+    std::unordered_map<long, std::vector<long>>* loadInwardLinks_grouped(void);
     long getId(std::string title);
 
 private:
