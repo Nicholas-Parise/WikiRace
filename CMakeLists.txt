@@ -27,3 +27,6 @@ set_source_files_properties(${SQLITE_SOURCE} PROPERTIES COMPILE_FLAGS "-DSQLITE_
 
 find_package(Threads REQUIRED)
 target_link_libraries(wikiRace PRIVATE Threads::Threads dl)
+find_package(OpenMP REQUIRED)
+target_link_libraries(wikiRace PRIVATE OpenMP::OpenMP_CXX)
+

@@ -6,17 +6,24 @@
 #include <ctime>
 #include <algorithm>
 #include <cmath>
+#include <omp.h>
 
-std::vector<std::string> graph::search(long start, long end) {
+std::vector<std::string> graph::search(long start, long end, bool parallel) {
     time_t start_t;
     time(&start_t);
 
 
     std::vector<std::string> output = { };
     std::vector<long> output_long;
-    output_long = bfs(start, end);
+    if (parallel) output_long = parallel_bfs(start, end);
+    else output_long = bfs(start, end);
 
-    if (output_long.size() == 0) { return output; }
+    if (output_long.size() == 0) {
+        time_t end_t;
+        time(&end_t);
+        std::cout << "Could not find a path after " << difftime(end_t, start_t) << " seconds." << std::endl;
+        return output; 
+    }
    
     std::cout << "Found a path with " << output_long.size() << " steps:" << std::endl;
 
@@ -34,6 +41,71 @@ struct NodeState {
     long id;
     int depth;
 };
+
+std::vector<long> graph::parallel_bfs(long start, long end) {
+    std::unordered_map<long, long> parent;
+    std::vector<long> empty;
+    std::queue<NodeState> q;
+    bool found = false;
+
+    int depth = 0;
+
+    q.push({start, 1});
+    parent[start] = -1;
+
+    while (!q.empty()) {
+        int levelSize = q.size();
+        std::queue<NodeState> next_q; // stores nodes on next level
+        #pragma omp parallel for // uses multiple threads to pop a node from the current frontier and add them to the next frontier queue
+        for (int i = 0; i < levelSize; i++) {
+            if (found) continue; // makes loop end early when a path has already been found.
+            NodeState node;
+            #pragma omp critical (current_frontier)
+            {
+                node = q.front();
+                q.pop();
+            }
+            if (node.depth > MAX_DEPTH) {
+                if (!found)  std::cerr << "Over max depth of " << MAX_DEPTH << "." << std::endl; // condition prevents this from printing multiple times
+                found = true;
+            }
+            #pragma omp critical (depth)
+            {
+                if (depth < node.depth) {
+                    std::cout << "Current Depth: " << node.depth << std::endl;
+                    depth = node.depth;
+                }
+            }
+
+            if (node.id == end) found = true;
+            auto it = links->find(node.id);
+            if (it == links->end()) continue; // no outgoing links
+
+            for (long neighbour : it->second) {
+                if (!parent.count(neighbour)) {
+                    #pragma omp critical (parent_update) // parent acts as the visited queue which is a critical region, next_q is also critical as queues are not thread safe
+                    {
+                        parent[neighbour] = node.id;
+                        next_q.push({neighbour, node.depth+1});
+                    }
+                }
+            }
+        }
+        q = next_q;
+    }
+
+    // reconstruct path
+    std::vector<long> path;
+    if (!parent.count(end)) {
+        std::cout << "Explored all possible nodes" << std::endl;
+        return path; // key not found
+    }
+
+    for (int v = end; v != -1; v = parent[v])
+        path.push_back(v);
+    std::reverse(path.begin(), path.end());
+    return path;
+}
 
 std::vector<long> graph::bfs(long start, long end) {
     std::unordered_map<long, long> parent;
@@ -74,7 +146,10 @@ std::vector<long> graph::bfs(long start, long end) {
 
     // reconstruct path
     std::vector<long> path;
-    if (!parent.count(end)) return path; // key not found
+    if (!parent.count(end)) {
+        std::cout << "Explored all possible nodes" << std::endl;
+        return path; // key not found
+    }
 
     for (int v = end; v != -1; v = parent[v])
         path.push_back(v);
