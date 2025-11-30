@@ -45,32 +45,28 @@ struct NodeState {
 std::vector<long> graph::parallel_bfs(long start, long end) {
     std::unordered_map<long, long> parent;
     std::vector<long> empty;
-    std::queue<NodeState> q;
+    std::vector<NodeState> frontier;
     bool found = false;
 
     int depth = 0;
 
-    q.push({start, 1});
+    frontier.push_back({start, 1});
     parent[start] = -1;
 
-    while (!q.empty()) {
-        int levelSize = q.size();
-        std::queue<NodeState> next_q; // stores nodes on next level
-        #pragma omp parallel for // uses multiple threads to pop a node from the current frontier and add them to the next frontier queue
+    while (!frontier.empty()) {
+        int levelSize = frontier.size();
+        std::vector<NodeState> next_frontier; // stores nodes on next level
+        #pragma omp parallel for schedule(dynamic)// uses multiple threads to pop a node from the current frontier and add them to the next frontier queue
         for (int i = 0; i < levelSize; i++) {
             if (found) continue; // makes loop end early when a path has already been found.
             NodeState node;
-            #pragma omp critical (current_frontier)
-            {
-                node = q.front();
-                q.pop();
-            }
-            if (node.depth > MAX_DEPTH) {
-                if (!found)  std::cerr << "Over max depth of " << MAX_DEPTH << "." << std::endl; // condition prevents this from printing multiple times
-                found = true;
-            }
+            node = frontier[i];
             #pragma omp critical (depth)
             {
+                if (node.depth > MAX_DEPTH) {
+                    if (!found)  std::cerr << "Over max depth of " << MAX_DEPTH << "." << std::endl; // condition prevents this from printing multiple times
+                    found = true;
+                }
                 if (depth < node.depth) {
                     std::cout << "Current Depth: " << node.depth << std::endl;
                     depth = node.depth;
@@ -86,12 +82,12 @@ std::vector<long> graph::parallel_bfs(long start, long end) {
                     #pragma omp critical (parent_update) // parent acts as the visited queue which is a critical region, next_q is also critical as queues are not thread safe
                     {
                         parent[neighbour] = node.id;
-                        next_q.push({neighbour, node.depth+1});
+                        next_frontier.push_back({neighbour, node.depth+1});
                     }
                 }
             }
         }
-        q = next_q;
+        frontier = next_frontier; //we've finished this level, advance to the next one
     }
 
     // reconstruct path
