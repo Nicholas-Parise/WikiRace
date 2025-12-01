@@ -4,6 +4,7 @@
 #include "dbUtil.h"
 #include "graph.h"
 #include <omp.h>
+#include <algorithm>
 
 int main(int argc, char* argv[]){
     if (argc < 3) { 
@@ -44,11 +45,15 @@ int main(int argc, char* argv[]){
 
     std::cout << "It took " << difftime(end_t, start_t) << " seconds." << std::endl;
 
-    time(&start_t);
+    std::vector<std::pair<long, double>> res = wikiGraph.pageRankSharedMemory(0.000001, threads);
 
-    wikiGraph.pageRankSharedMemory(0.000001, threads);
+    /* Output top 100 ranks
+    std::sort(res.begin(), res.end(), [](auto &left, auto &right) {
+        return left.second > right.second;
+    });
 
-    time(&end_t);
-
-    std::cout << "It took " << difftime(end_t, start_t) << " seconds." << std::endl;
+    for (int i = 0; i < 100; i++){
+        std::cout<<databaseUtil.getTitle(res[i].first)<<":"<<res[i].second<<std::endl;
+    }
+        */
 }

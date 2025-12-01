@@ -45,6 +45,8 @@ mpiexec -n 2 .\pageRankDistributedMemory.exe 1 > PR_Distributed/pageRank_2_1.txt
 
 mpiexec -n 4 .\pageRankDistributedMemory.exe 1 > PR_Distributed/pageRank_4_1.txt
 
+mpiexec -n 8 .\pageRankDistributedMemory.exe 1 > PR_Distributed/pageRank_8_1.txt
+
 # fractional_problem_size=0.5
 mpiexec -n 1 .\pageRankDistributedMemory.exe 0.5 > PR_Distributed/pageRank_1_0.5.txt
 
@@ -52,10 +54,14 @@ mpiexec -n 2 .\pageRankDistributedMemory.exe 0.5 > PR_Distributed/pageRank_2_0.5
 
 mpiexec -n 4 .\pageRankDistributedMemory.exe 0.5 > PR_Distributed/pageRank_4_0.5.txt
 
+mpiexec -n 8 .\pageRankDistributedMemory.exe 0.5 > PR_Distributed/pageRank_8_0.5.txt
+
 # fractional_problem_size=0.25
 mpiexec -n 1 .\pageRankDistributedMemory.exe 0.25 > PR_Distributed/pageRank_1_0.25.txt
 
 mpiexec -n 2 .\pageRankDistributedMemory.exe 0.25 > PR_Distributed/pageRank_2_0.25.txt
 
 mpiexec -n 4 .\pageRankDistributedMemory.exe 0.25 > PR_Distributed/pageRank_4_0.25.txt
+
+mpiexec -n 8 .\pageRankDistributedMemory.exe 0.25 > PR_Distributed/pageRank_8_0.25.txt
 

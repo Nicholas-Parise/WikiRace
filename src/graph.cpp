@@ -84,7 +84,7 @@ std::vector<long> graph::bfs(long start, long end) {
     return path;
 }
 
-
+// Sequential version of PageRank
 std::vector<std::pair<long, double>> graph::pageRank(double threshold){
     static double d = 0.85; // damping factor
     
@@ -139,7 +139,6 @@ std::vector<std::pair<long, double>> graph::pageRank(double threshold){
         curr_interation++;
     }
 
-
     std::vector<std::pair<long, double>> ranks = std::vector<std::pair<long, double>>(links->size());
     index = 0;
     for(auto kv : *links) {
@@ -159,8 +158,13 @@ struct page {
 std::vector<std::pair<long, double>> graph::pageRankSharedMemory(double threshold, int threads){
     static double d = 0.85; // damping factor
 
+    time_t start_t;
+    time(&start_t);
+
     std::vector<page> pages = std::vector<page>(links->size());
     std::unordered_map<long, int> idMap = std::unordered_map<long, int>(links->size());
+
+    std::vector<std::pair<int, std::vector<int>>> mapped_graph;
 
     std::cout<<"Creating PageID list"<<std::endl;
 
@@ -180,10 +184,28 @@ std::vector<std::pair<long, double>> graph::pageRankSharedMemory(double threshol
             pages[idMap[in]].numberOfOutLinks = pages[idMap[in]].numberOfOutLinks + 1;
         }
     }
+
+    // Build mapped_graph
+    for (auto kv : (*links)){
+        std::vector<int> indices;
+
+        for (long out : kv.second)
+            indices.push_back(idMap[out]);
+        mapped_graph.push_back({idMap[kv.first], indices});
+    }
     
     std::cout<<"Allocating Vectors "<<links->size()<<std::endl;
-    std::vector<double> prevRanks = std::vector<double>(links->size(), 1.0 / links->size());
-    std::vector<double> nextRanks = std::vector<double>(links->size(), 0.0);
+    std::vector<double> prevRanks = std::vector<double>(links->size());
+    std::vector<double> nextRanks = std::vector<double>(links->size());
+
+    omp_set_num_threads(threads); // declare thread pool
+
+    double init_val = 1.0 / links->size();
+    #pragma omp parallel for
+    for (int i = 0; i < nextRanks.size(); i++){
+        prevRanks[i] = init_val;
+        nextRanks[i] = 0;
+    }
 
     static int MAX_ITERATIONS = 500;
     int curr_interation = 1;
@@ -193,20 +215,15 @@ std::vector<std::pair<long, double>> graph::pageRankSharedMemory(double threshol
 
     std::cout<<"Starting Page Rank Algorithm"<<std::endl;
 
-    omp_set_num_threads(threads); // declare thread pool
-
     while(curr_interation <= MAX_ITERATIONS) {
         std::cout<<"Page Rank Iteration: "<<curr_interation<<std::endl;
 
         // collect weights
         #pragma omp parallel for schedule(dynamic, 1)
-        for(int i = 0; i < pages.size(); i++){
-            nextRanks[i] = randomSurferValue;
-            for (auto in : (*links)[pages[i].id]) {
-                if(pages[idMap[in]].numberOfOutLinks == 0){
-                    std::cout<<"DIVISION BY ZERO"<<std::endl;
-                }
-                nextRanks[i] = nextRanks[i] + (d * prevRanks[idMap[in]] / pages[idMap[in]].numberOfOutLinks);
+        for(int i = 0; i < mapped_graph.size(); i++){
+            nextRanks[mapped_graph[i].first] = randomSurferValue;
+            for (auto in : mapped_graph[i].second) {
+                nextRanks[mapped_graph[i].first] += d * prevRanks[in] / pages[in].numberOfOutLinks;
             }
         }
 
@@ -233,14 +250,17 @@ std::vector<std::pair<long, double>> graph::pageRankSharedMemory(double threshol
     }
 
     std::vector<std::pair<long, double>> ranks = std::vector<std::pair<long, double>>(links->size());
-        
+
+    time_t end_t;
+    time(&end_t);
+
+    std::cout << "It took " << difftime(end_t, start_t) << " seconds." << std::endl;
+
+    // create output list, not timed
     #pragma omp parallel for
     for(int i = 0; i < pages.size(); i++){
         ranks[i] = {pages[i].id, prevRanks[i]};
     }
-    
-
-    delete links;
     
     return ranks;
     

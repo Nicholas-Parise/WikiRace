@@ -4,6 +4,7 @@
 #include "dbUtil.h"
 #include "graph.h"
 #include <unordered_map>
+#include <chrono>
 #include <mpi.h>
 
 int main(int argc, char* argv[]){
@@ -23,13 +24,21 @@ int main(int argc, char* argv[]){
     std::vector<std::pair<int, std::vector<int>>> local_graph; 
     std::unordered_map<long, std::vector<long>>* links; // only used by master
     std::unordered_map<long, int> idMap; // only used by master
+
+    std::chrono::high_resolution_clock::time_point start;
+    std::chrono::high_resolution_clock::time_point end;
+    std::vector<std::pair<std::string, int>> timeline;
+
     time_t start_t;
     time(&start_t);
+
+    start = std::chrono::high_resolution_clock::now();
     
     MPI_Init(NULL, NULL);
     MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
+    // Partition Graph
     if (my_rank == 0) { // master
         sqlite3 *db;
         int rc = sqlite3_open("../wikipedia.sqlite", &db);
@@ -109,8 +118,18 @@ int main(int argc, char* argv[]){
                 }
             }
 
+            // check for when to switch nodes
             tmp++;
             if (tmp >= breakpoint){
+                if (node == 0){
+                    end = std::chrono::high_resolution_clock::now();
+                    auto duration = end - start;
+                    int milliseconds = (int) std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+                    timeline.push_back({"computation", milliseconds});
+
+                    start = std::chrono::high_resolution_clock::now();
+                }
+
                 std::cout<<"Finished node: "<<node<<std::endl;
                 node++;
                 send_length = true;
@@ -146,7 +165,12 @@ int main(int argc, char* argv[]){
         }
     }
 
-    MPI_Barrier(MPI_COMM_WORLD); // wait until all processes have their local data
+    end = std::chrono::high_resolution_clock::now();
+    auto duration = end - start;
+    int milliseconds = (int) std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    timeline.push_back({"communication", milliseconds});
+
+    start = std::chrono::high_resolution_clock::now();
 
     if (my_rank == 0)
         std::cout<<"Starting PageRank Algorithm"<<std::endl;
@@ -160,6 +184,7 @@ int main(int argc, char* argv[]){
 
     int iteration = 1;
 
+    // Main PageRank algorithm
     while (diff >= threshold){
         if (my_rank == 0){
             std::cout<<"Iteration: "<<iteration<<std::endl;
@@ -178,8 +203,20 @@ int main(int argc, char* argv[]){
             }
         }
 
+        end = std::chrono::high_resolution_clock::now();
+        duration = end - start;
+        milliseconds = (int) std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+        timeline.push_back({"computation", milliseconds});
+        start = std::chrono::high_resolution_clock::now();
+
         // Allreduce nextRanks
         MPI_Allreduce(MPI_IN_PLACE, nextRanks.data(), N, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+        end = std::chrono::high_resolution_clock::now();
+        duration = end - start;
+        milliseconds = (int) std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+        timeline.push_back({"communication", milliseconds});
+        start = std::chrono::high_resolution_clock::now();
 
         // calculate diffs
         diff = 0;
@@ -187,8 +224,20 @@ int main(int argc, char* argv[]){
             diff += std::abs(nextRanks[pair.first] - prevRanks[pair.first]);
         }
 
+        end = std::chrono::high_resolution_clock::now();
+        duration = end - start;
+        milliseconds = (int) std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+        timeline.push_back({"computation", milliseconds});
+        start = std::chrono::high_resolution_clock::now();
+
         // Allreduce the diff
         MPI_Allreduce(MPI_IN_PLACE, &diff, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+        end = std::chrono::high_resolution_clock::now();
+        duration = end - start;
+        milliseconds = (int) std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+        timeline.push_back({"communication", milliseconds});
+        start = std::chrono::high_resolution_clock::now();
 
         if (my_rank == 0)
             std::cout<<"Diff: "<<diff<<std::endl;
@@ -205,6 +254,10 @@ int main(int argc, char* argv[]){
 
         std::cout<<"Finished"<<std::endl;
         std::cout << "It took " << difftime(end_t, start_t) << " seconds." << std::endl;
+
+        for (auto item : timeline){
+            std::cout<<item.first<<","<<item.second<<std::endl;
+        }
     }
 
     MPI_Finalize();
