@@ -322,7 +322,7 @@ std::vector<long> graph::parallel_bidirectional(long start, long end, std::unord
     long meeting = -1;
     bool done = false;
 
-    while (!front_frontier.empty() && !front_frontier.empty() && !done)
+    while (!front_frontier.empty() && !back_frontier.empty() && !done)
     {
         std::vector<NodeState> next_front;
         std::vector<NodeState> next_back;
@@ -332,7 +332,7 @@ std::vector<long> graph::parallel_bidirectional(long start, long end, std::unord
             // front bfs expansion
             #pragma omp section
             {
-                #pragma omp parallel for
+                #pragma omp parallel for schedule(dynamic) num_threads(NUM_THREADS)
                 for (int i=0; i<front_frontier.size(); i++)
                 {
                     if (done) continue; //makes loop end early if the solution was already found
@@ -343,15 +343,16 @@ std::vector<long> graph::parallel_bidirectional(long start, long end, std::unord
 
                     for (long v : it->second) {
                         if (done) break;
-                        #pragma omp critical (front) //used name critical section to allow the back searcher to work at the same time
                         if (!front_visited[v]) {
-                            front_visited[v] = true;
-                            front_parent[v] = cur.id;
-                            next_front.push_back({v, front_depth + 1});
-
+                            #pragma omp critical (front) //used name critical section to allow the back searcher to work at the same time
+                            {
+                                front_visited[v] = true;
+                                front_parent[v] = cur.id;
+                                next_front.push_back({v, front_depth + 1});
+                            }
                             if (back_visited[v]) {
-                                meeting = v;
                                 done = true;
+                                meeting = v;
                             }
                         }
                     }
@@ -361,7 +362,7 @@ std::vector<long> graph::parallel_bidirectional(long start, long end, std::unord
             // back bfs expansion
             #pragma omp section
             {
-                #pragma omp parallel for
+                #pragma omp parallel for schedule(dynamic) num_threads(NUM_THREADS)
                 for (int i=0; i<back_frontier.size(); i++)
                 {
                     if (done) continue;
@@ -372,21 +373,23 @@ std::vector<long> graph::parallel_bidirectional(long start, long end, std::unord
 
                     for (long v : it->second) {
                         if (done) break;
-                        #pragma omp critical (back) // used named critical region to allow the front searcher to search simultaneously
                         if (!back_visited[v]) {
-                            back_visited[v] = true;
-                            back_parent[v] = cur.id;
-                            next_back.push_back({v, back_depth + 1});
-
+                            #pragma omp critical (back) // used named critical region to allow the front searcher to search simultaneously
+                            {
+                                back_visited[v] = true;
+                                back_parent[v] = cur.id;
+                                next_back.push_back({v, back_depth + 1});
+                            }
                             if (front_visited[v]) {
-                                meeting = v;
                                 done = true;
+                                meeting = v;
                             }
                         }
                     }
                 }
             }
         } // end sections
+
 
         if (done) break;
 
@@ -399,9 +402,7 @@ std::vector<long> graph::parallel_bidirectional(long start, long end, std::unord
 
     if (!done || meeting == -1) return {};
 
-    // ------------------------------------------------------------
-    // PATH RECONSTRUCTION
-    // ------------------------------------------------------------
+    // reconstruct the path using the middle node
     std::vector<long> path;
 
     long v = meeting;
