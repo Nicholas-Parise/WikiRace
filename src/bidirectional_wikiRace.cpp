@@ -139,6 +139,7 @@ int main(){
 
     //std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadLinks_grouped();
     std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadLinks_grouped_Threaded();
+    std::unordered_map<long, std::vector<long>>* inverted_links = databaseUtil.loadInwardLinks_grouped();
 
     time_t end_t;
     time(&end_t);
@@ -193,7 +194,7 @@ int main(){
             std::cout << secondTitle << std::endl;
 
             // Use search algorithm to find the shortest path (if it exists)
-            std::vector<std::string> output = wikiGraph.search(firstArticle, secondArticle, true);
+            std::vector<std::string> output = wikiGraph.bidirectional_search(firstArticle, secondArticle, false, inverted_links);
             for (std::string str: output){
                 std::cout << str << std::endl;
             }
@@ -225,10 +226,9 @@ int main(){
             std::getline(std::cin, mode);
             std::vector<std::string> output;
             if (mode == "0") {
-                std::cout << "test" << std::endl;
-                output = wikiGraph.search(firstArticle, secondArticle, false);
+                output = wikiGraph.bidirectional_search(firstArticle, secondArticle, false, inverted_links);
             } else {
-                output = wikiGraph.search(firstArticle, secondArticle, true);
+                output = wikiGraph.bidirectional_search(firstArticle, secondArticle, true, inverted_links);
             }
             for (std::string str: output){
                 std::cout << str << std::endl;
