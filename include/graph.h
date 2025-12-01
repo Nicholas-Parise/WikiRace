@@ -23,4 +23,5 @@ private:
     std::vector<long> parallel_bidirectional(long start, long end, std::unordered_map<long, std::vector<long>>* incoming_link);
 
     static const int MAX_DEPTH = 15;
+    static const int NUM_THREADS = 16;
 };

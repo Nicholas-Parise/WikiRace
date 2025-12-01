@@ -83,14 +83,14 @@ std::vector<long> graph::parallel_bfs(long start, long end) {
 
     while (!frontier.empty()) {
         depth++;
-        std::cout << "Current depth is " << depth << std::endl;
+        if (found) break;
         if (depth > MAX_DEPTH) {
             std::cerr << "Over max depth of " << MAX_DEPTH << std::endl;
             break;
         }
         int levelSize = frontier.size();
         std::vector<NodeState> next_frontier; // stores nodes on next level
-        #pragma omp parallel for schedule(dynamic)// uses multiple threads to get a node from the current frontier and add them to the next frontier queue
+        #pragma omp parallel for schedule(dynamic) num_threads(NUM_THREADS)// uses multiple threads to get a node from the current frontier and add them to the next frontier queue
         for (int i = 0; i < levelSize; i++) {
             if (found) continue; // makes loop end early when a path has already been found.
             NodeState node;
@@ -111,6 +111,7 @@ std::vector<long> graph::parallel_bfs(long start, long end) {
             }
         }
         frontier = next_frontier; //we've finished this level, advance to the next one
+        std::cout << "Current depth is " << depth << std::endl;
     }
 
     // reconstruct path
