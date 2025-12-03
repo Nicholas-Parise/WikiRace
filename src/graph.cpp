@@ -333,7 +333,7 @@ std::vector<long> graph::parallel_bidirectional(long start, long end, std::unord
             #pragma omp section
             {
                 #pragma omp parallel for
-                for (int i=0; i<front_frontier.size(); i++)
+                for (long long unsigned int i=0; i<front_frontier.size(); i++)
                 {
                     if (done) continue; //makes loop end early if the solution was already found
                     NodeState cur = front_frontier[i]; // does not need critical region because we are only reading
@@ -362,7 +362,7 @@ std::vector<long> graph::parallel_bidirectional(long start, long end, std::unord
             #pragma omp section
             {
                 #pragma omp parallel for
-                for (int i=0; i<back_frontier.size(); i++)
+                for (long long unsigned int i=0; i<back_frontier.size(); i++)
                 {
                     if (done) continue;
                     NodeState cur = back_frontier[i]; // does not need critical region because we are only reading
@@ -468,7 +468,7 @@ std::vector<std::pair<long, double>> graph::pageRank(double threshold){
         std::cout<<"Testing for Convergence"<<std::endl;
         // check convergence
         double diff = 0.0;
-        for (int i = 0; i < nextRanks.size(); i++)
+        for (long long unsigned int i = 0; i < nextRanks.size(); i++)
             diff += std::abs(nextRanks[i] - prevRanks[i]);
         
         if(diff < threshold){
