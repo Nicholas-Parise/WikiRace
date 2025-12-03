@@ -289,23 +289,30 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped_Threaded(
             if (!targetsText) continue;
 
             Row row{source, reinterpret_cast<const char*>(targetsText)};
+/*
 
             {
                 std::unique_lock<std::mutex> lock(qtex);
                 q.push(std::move(row));
             }
-
-
-            rowCount++;
-            if (rowCount % 999 == 0) {
-                cv.notify_one();
+            cv.notify_one();
+            //cv.notify_all();
+*/
+            // add to queue
+            {
+                std::unique_lock<std::mutex> lock(qtex);
+                // now only notify IF the batch is large enough
+                bool should_notify = q.size() < BATCH_SIZE;
+                q.push(std::move(row));
+                if (should_notify && q.size() >= BATCH_SIZE) {
+                    cv.notify_all();
+                }
             }
 
+            rowCount++;         
             if (rowCount % 100000 == 0) {
                 spinner(spinnerState);
             }
-           
-
         }
 
         if (local_rc != SQLITE_DONE) {
@@ -335,14 +342,17 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped_Threaded(
         auto &local_map = thread_maps[map_id];
     
         std::vector<Row> rows;
-        rows.reserve(1000);
         std::vector<long> local;
 
+        rows.reserve(BATCH_SIZE);
         while(true){
 
             {
                 std::unique_lock<std::mutex> lock(qtex);
-                cv.wait(lock, [&]{ return !q.empty() || done.load(std::memory_order_acquire); });
+                cv.wait(lock, [&]{ 
+                    // if there is enough work we will wake up this thread
+                    return q.size() >= BATCH_SIZE || done.load(std::memory_order_acquire); 
+                });
 
                 if(done.load(std::memory_order_acquire) && q.empty()){
                     //std::cout<<"Thread "<<map_id<<" Done"<<std::endl;
@@ -354,7 +364,7 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped_Threaded(
                 if(!q.empty()){
                     // get some work to do. Lock queue and take from it.
                     int n = 0;
-                    while (!q.empty() && n < 1000) {
+                    while (!q.empty() && n < BATCH_SIZE) {
                         rows.push_back(std::move(q.front()));
                         q.pop();
                         n++;
@@ -379,6 +389,7 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped_Threaded(
             }
             // reset the rows vector
             rows.clear();
+            rows.reserve(BATCH_SIZE);
         
         }
     }

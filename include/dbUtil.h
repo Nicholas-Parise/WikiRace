@@ -25,5 +25,7 @@ private:
 
     static const long NUM_PAGES = 18657926;
     static const int AVG_LINKS = 22;
-    static const int MAX_THREADS = 6;
+    static const int MAX_THREADS = 4;
+    static const int BATCH_SIZE = 10000;
+
 };
