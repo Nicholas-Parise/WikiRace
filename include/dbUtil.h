@@ -25,4 +25,5 @@ private:
 
     static const long NUM_PAGES = 18657926;
     static const int AVG_LINKS = 22;
+    static const int MAX_THREADS = 6;
 };

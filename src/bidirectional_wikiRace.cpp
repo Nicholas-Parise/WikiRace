@@ -182,7 +182,7 @@ int main(){
 
     if (smallMode) {    // Do to smaller graphs having an uncontrollable list of pages, we don't let user choose articles
         bool done = false;
-        while (not done) {
+        while (!done) {
             // Pick two random articles
             auto articles = selectArticles(links);
             long firstArticle = articles.first;

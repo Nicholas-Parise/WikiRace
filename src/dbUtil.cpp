@@ -7,6 +7,8 @@
 #include <queue>
 #include <mutex>
 #include <thread>
+#include <atomic>
+#include <condition_variable>
 
 // spinner loading bar
 void dbUtil::spinner(int &state) {
@@ -263,7 +265,8 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped_Threaded(
     
     std::queue<Row> q;
     std::mutex qtex;
-    bool done = false; 
+    std::condition_variable cv;
+    std::atomic<bool> done{false};
     
     const char *sql = "SELECT source_id, targets FROM links_grouped;";
     sqlite3_stmt *stmt = nullptr;
@@ -275,11 +278,11 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped_Threaded(
         return links;
     }
 
-    int spinnerState = 0;
-    long rowCount = 0;
-
     std::thread producer([&](){
-        while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+        int local_rc;
+        int spinnerState = 0;
+        long rowCount = 0;
+        while ((local_rc = sqlite3_step(stmt)) == SQLITE_ROW) {
             long source = sqlite3_column_int64(stmt, 0);
 
             const unsigned char* targetsText = sqlite3_column_text(stmt, 1);
@@ -288,56 +291,95 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped_Threaded(
             Row row{source, reinterpret_cast<const char*>(targetsText)};
 
             {
-                std::lock_guard<std::mutex> lock(qtex);
+                std::unique_lock<std::mutex> lock(qtex);
                 q.push(std::move(row));
             }
 
+
             rowCount++;
+            if (rowCount % 999 == 0) {
+                cv.notify_one();
+            }
+
             if (rowCount % 100000 == 0) {
                 spinner(spinnerState);
             }
+           
+
         }
 
-        if (rc != SQLITE_DONE) {
+        if (local_rc != SQLITE_DONE) {
             std::cerr << "Error reading rows: " << sqlite3_errmsg(db) << std::endl;
         }
 
-        {
-            std::lock_guard<std::mutex> lock(qtex);
-            done = true;
-        }
+        done.store(true, std::memory_order_release);
+        cv.notify_all();
     });
+
+    // set number of threads to amount hardware is capable of using 
+    int cores = std::thread::hardware_concurrency();
+    int use_threads = cores > MAX_THREADS ? MAX_THREADS : cores;
+    omp_set_num_threads(use_threads);
+
+    // give each omp thread it's own local map to write data into
+    int num_threads = omp_get_max_threads();
+    std::vector<std::unordered_map<long, std::vector<long>>> thread_maps;
+    thread_maps.resize(num_threads);
+
+    std::cout<<"consumer threads: "<<num_threads<<std::endl;
 
     #pragma omp parallel
     {
+        // get the local map
+        const int map_id = omp_get_thread_num();
+        auto &local_map = thread_maps[map_id];
+    
+        std::vector<Row> rows;
+        rows.reserve(1000);
         std::vector<long> local;
 
         while(true){
-            Row row;
-            bool got_work = false;
 
             {
-                // get some work to do. Lock queue and take from it.
-                std::lock_guard<std::mutex> lock(qtex);
-                if(!q.empty()){
-                    row = std::move(q.front());
-                    q.pop();
-                    got_work = true;
-                }else if (done){
+                std::unique_lock<std::mutex> lock(qtex);
+                cv.wait(lock, [&]{ return !q.empty() || done.load(std::memory_order_acquire); });
+
+                if(done.load(std::memory_order_acquire) && q.empty()){
+                    //std::cout<<"Thread "<<map_id<<" Done"<<std::endl;
                     break;
+                } 
+
+                //std::cout << "Current queue size: " << q.size() << std::endl;
+
+                if(!q.empty()){
+                    // get some work to do. Lock queue and take from it.
+                    int n = 0;
+                    while (!q.empty() && n < 1000) {
+                        rows.push_back(std::move(q.front()));
+                        q.pop();
+                        n++;
+                        //std::cout<<"Thread "<<map_id<<" poped"<<std::endl;
+                    }
+                }else{
+                    continue;
                 }
+            //std::cout << "Current queue size: " << q.size() <<" after poping"<<std::endl;
             }
 
-            if(!got_work) continue;
-            // clear local copy and parse data.
-            local.clear();
-            parseTargets(row.text, local);
             
-            // with our finished local copy move to map
-            #pragma omp critical
-            {
-                (*links)[row.source] = std::move(local);
+
+            // process entire batch    
+            for (auto &row : rows) {
+                // clear local copy and parse data.
+                local.clear();
+                parseTargets(row.text, local);
+                // with our finished local copy move to local map
+                local_map.emplace(row.source, std::move(local));
+                row.text.clear();
             }
+            // reset the rows vector
+            rows.clear();
+        
         }
     }
 
@@ -345,10 +387,25 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped_Threaded(
     producer.join();
     sqlite3_finalize(stmt);
 
+/*
+    for (auto &tmap : thread_maps) {
+        for (auto &p : tmap) {
+            // Move thread map vectors into result map
+            //(*links)[p.first] = std::move(p.second);
+            links->emplace(p.first, std::move(p.second));
+        }
+    }
+*/
+    for (auto &tmap : thread_maps) {
+        links->merge(tmap);
+    }
+
     std::cout<<"\rFinished Loading links"<<std::endl;
 
     return links;
 }
+
+
 std::unordered_map<long, std::vector<long>>* dbUtil::loadInwardLinks_grouped(void){
 
     std::unordered_map<long, std::vector<long>>* links = new std::unordered_map<long, std::vector<long>>;
