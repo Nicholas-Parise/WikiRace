@@ -19,4 +19,4 @@ CREATE INDEX IF NOT EXISTS idx_links_grouped_source ON links_grouped(source_id);
 
 -- create virtual table for searching
 CREATE VIRTUAL TABLE page_titles USING fts5(page_id UNINDEXED, title);
-INSERT INTO page_titles(page_id, title) SELECT page_id, title FROM pages;
+INSERT INTO page_titles(page_id, title) SELECT page_id, title FROM pages WHERE is_redirect=0;
