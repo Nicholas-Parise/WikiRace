@@ -300,21 +300,12 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped_Threaded(
             if (!targetsText) continue;
 
             Row row{source, reinterpret_cast<const char*>(targetsText)};
-/*
-
-            {
-                std::unique_lock<std::mutex> lock(qtex);
-                q.push(std::move(row));
-            }
-            cv.notify_one();
-            //cv.notify_all();
-*/
             // add to queue
             {
                 std::unique_lock<std::mutex> lock(qtex);
-                // now only notify IF the batch is large enough
                 bool should_notify = q.size() < BATCH_SIZE;
                 q.push(std::move(row));
+                // now only notify IF the batch is large enough
                 if (should_notify && q.size() >= BATCH_SIZE) {
                     cv.notify_all();
                 }
@@ -418,6 +409,7 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped_Threaded(
         }
     }
 */
+    // merge all the local maps into one large map.
     for (auto &tmap : thread_maps) {
         links->merge(tmap);
     }

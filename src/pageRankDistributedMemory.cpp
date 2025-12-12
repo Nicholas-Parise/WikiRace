@@ -55,7 +55,7 @@ int main(int argc, char* argv[]){
 
         dbUtil databaseUtil(db);
 
-        links = databaseUtil.loadLinks_grouped(); // read in data
+        links = databaseUtil.loadLinks_grouped_Threaded(); // read in data
 
         if(fractional_problem_size != 1){ // reduce probelm size if neccessary
             std::cout<<"Reducing Graph Size"<<std::endl;
