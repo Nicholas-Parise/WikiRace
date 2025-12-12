@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
     dbUtil* databaseUtil; // made it a pointer because this is the only way I could think to declare it outside of the block scope
     long first, second;
     if (rank == 0 ) {   //load database into graph
-        cout << "Warning: There is a high chance this program will run out of memory and crash if you select two articles more than 3 layers apart, and are using 2 or more processors." << endl;+
+        cout << "Warning: There is a high chance this program will run out of memory and crash if you select two articles more than 3 layers apart, and are using 2 or more processors." << endl;
         time_t start_t;
         time(&start_t);
 
