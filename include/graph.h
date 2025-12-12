@@ -11,6 +11,9 @@ public:
     std::vector<std::string> search(long start, long end, bool parallel);
     std::vector<std::string> bidirectional_search(long start, long end, bool parallel, std::unordered_map<long, std::vector<long>>* incoming_link);
     std::vector<std::pair<long, double>> pageRank(double threshold);
+    std::vector<std::pair<long, double>> pageRankSharedMemory(double threshold, int threads);
+
+    static void reduceGraphSize(double fractionalSize, std::unordered_map<long, std::vector<long>>* links);
 
 private:
     std::unordered_map<long, std::vector<long>>* links;

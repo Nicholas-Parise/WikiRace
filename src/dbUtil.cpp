@@ -18,6 +18,17 @@ void dbUtil::spinner(int &state) {
 }
 
 
+/*void dbUtil::parseTargets(const std::string& s, std::vector<long>& out) {
+    std::stringstream ss(s);
+    std::string token;
+    while (std::getline(ss, token, ' ')) {
+        if (!token.empty()) {
+            out.push_back(std::stol(token));
+        }
+    }
+}*/
+
+
 void dbUtil::parseTargets(const std::string& s, std::vector<long>& out) {
     const char* p = s.data();
     const char* end = s.data() + s.size();
@@ -444,7 +455,7 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadInwardLinks_grouped(voi
     long rowCount = 0;
 
     while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
-        long source = sqlite3_column_int64(stmt, 0);
+        int source = sqlite3_column_int64(stmt, 0);
         (*links).try_emplace(source);
 
         const unsigned char* targetsText = sqlite3_column_text(stmt, 1);
@@ -453,10 +464,10 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadInwardLinks_grouped(voi
         std::vector<long> targets;
         parseTargets(reinterpret_cast<const char*>(targetsText),targets);
 
-        for (auto t: targets) {
+        for(auto t : targets) {
             (*links)[t].push_back(source);
         }
-
+        
         rowCount++;
         if (rowCount % 100000 == 0) {
             spinner(spinnerState);
@@ -481,3 +492,5 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadInwardLinks_grouped(voi
 
     return links;
 }
+
+
