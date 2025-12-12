@@ -76,7 +76,7 @@ std::vector<long> graph::parallel_bfs(long start, long end) {
     std::unordered_map<long, long> parent;
     std::vector<NodeState> frontier;
     bool found = false;
-
+    std::cout << "Now searching with " << NUM_THREADS << " threads." << std::endl;
     int depth = 0;
 
     frontier.push_back({start, 1});
