@@ -544,7 +544,7 @@ std::vector<std::pair<long, double>> graph::pageRankSharedMemory(double threshol
 
     double init_val = 1.0 / links->size();
     #pragma omp parallel for
-    for (int i = 0; i < nextRanks.size(); i++){
+    for (long long unsigned int i = 0; i < nextRanks.size(); i++){
         prevRanks[i] = init_val;
         nextRanks[i] = 0;
     }
@@ -562,7 +562,7 @@ std::vector<std::pair<long, double>> graph::pageRankSharedMemory(double threshol
 
         // collect weights
         #pragma omp parallel for schedule(dynamic, 1)
-        for(int i = 0; i < mapped_graph.size(); i++){
+        for(long long unsigned int i = 0; i < mapped_graph.size(); i++){
             nextRanks[mapped_graph[i].first] = randomSurferValue;
             for (auto in : mapped_graph[i].second) {
                 nextRanks[mapped_graph[i].first] += d * prevRanks[in] / pages[in].numberOfOutLinks;

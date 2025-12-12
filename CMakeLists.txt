@@ -27,26 +27,38 @@ set(SQLITE_SOURCE src/sqlite3.c)
 add_executable(wikiRace ${MAIN} ${CPP_SOURCES} ${SQLITE_SOURCE})
 add_executable(pageRankSequential ${PAGERANK_SEQUENTIAL} ${CPP_SOURCES} ${SQLITE_SOURCE})
 add_executable(pageRankSharedMemory ${PAGERANK_SHARED_MEMORY} ${CPP_SOURCES} ${SQLITE_SOURCE})
-add_executable(pageRankDistributedMemory ${PAGERANK_DISTRIBUTED_MEMORY} ${CPP_SOURCES} ${SQLITE_SOURCE})
+
 add_executable(bidirectional_wikiRace ${BI} ${CPP_SOURCES} ${SQLITE_SOURCE}
         src/bidirectional_wikiRace.cpp)
 
 # Compile SQLite with FTS5
 set_source_files_properties(${SQLITE_SOURCE} PROPERTIES COMPILE_FLAGS "-DSQLITE_ENABLE_FTS5")
 
+
 find_package(Threads REQUIRED)
 target_link_libraries(wikiRace PRIVATE Threads::Threads dl)
 target_link_libraries(pageRankSharedMemory PRIVATE Threads::Threads dl)
-target_link_libraries(pageRankDistributedMemory MPI::MPI_CXX)
+
+
+find_package(MPI)
+if (MPI_FOUND)
+    message(STATUS "MPI found")
+    add_executable(pageRankDistributedMemory ${PAGERANK_DISTRIBUTED_MEMORY} ${CPP_SOURCES} ${SQLITE_SOURCE})
+    target_link_libraries(pageRankDistributedMemory MPI::MPI_CXX)
+else()
+    message(WARNING "MPI NOT found")
+endif()
 
 find_package(OpenMP REQUIRED)
 if (OPENMP_FOUND)
+    message(STATUS "MP found")
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+else()
+    message(WARNING "MP NOT found, REQUIRED DEPENCENCY")
 endif()
 
-find_package(MPI REQUIRED)
 target_link_libraries(wikiRace PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(bidirectional_wikiRace PRIVATE OpenMP::OpenMP_CXX)
 
