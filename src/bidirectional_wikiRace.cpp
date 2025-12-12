@@ -138,7 +138,8 @@ int main(){
     dbUtil databaseUtil(db);
 
     std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadLinks_grouped_Threaded();
-    std::unordered_map<long, std::vector<long>>* inverted_links = databaseUtil.loadInwardLinks_grouped();
+    //std::unordered_map<long, std::vector<long>>* inverted_links = databaseUtil.loadInwardLinks_grouped();
+    std::unordered_map<long, std::vector<long>>* inverted_links = databaseUtil.loadInwardLinks_fromOutward(links);
 
     time_t end_t;
     time(&end_t);

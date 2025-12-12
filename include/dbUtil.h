@@ -15,12 +15,14 @@ public:
     std::unordered_map<long, std::vector<long>>* loadLinks_grouped(void);
     std::unordered_map<long, std::vector<long>>* loadLinks_grouped_Threaded(void);
     std::unordered_map<long, std::vector<long>>* loadInwardLinks_grouped(void);
+    std::unordered_map<long, std::vector<long>>* loadInwardLinks_fromOutward(const std::unordered_map<long, std::vector<long>>* outward);
     long getId(std::string title);
 
 private:
     sqlite3 *db;
 
     static void spinner(int &state);
+    static void spinner(int &state, std::string s);
     static void parseTargets(const std::string& s, std::vector<long>& out);
 
     static const long NUM_PAGES = 18657926;

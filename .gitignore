@@ -12,3 +12,5 @@
 *.vscode
 # build stuff
 *.exe
+# temp stuff
+*.tmp

@@ -17,6 +17,13 @@ void dbUtil::spinner(int &state) {
     state++;
 }
 
+// spinner loading bar with variable name
+void dbUtil::spinner(int &state, std::string s) {
+    const char symbols[] = {'|', '/', '-', '\\'};
+    std::cout << s << symbols[state % 4] << std::flush;
+    state++;
+}
+
 
 /*void dbUtil::parseTargets(const std::string& s, std::vector<long>& out) {
     std::stringstream ss(s);
@@ -282,7 +289,6 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadLinks_grouped_Threaded(
     const char *sql = "SELECT source_id, targets FROM links_grouped;";
     sqlite3_stmt *stmt = nullptr;
 
-    char* errmsg = nullptr;
     int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
     if (rc != SQLITE_OK) {
         std::cerr << "Failed to prepare statement: " << sqlite3_errmsg(db) << std::endl;
@@ -462,7 +468,7 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadInwardLinks_grouped(voi
         
         rowCount++;
         if (rowCount % 100000 == 0) {
-            spinner(spinnerState);
+            spinner(spinnerState,"\rLoading Inward links ");
         }
 
     }
@@ -480,9 +486,38 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadInwardLinks_grouped(voi
         sqlite3_free(errmsg);
     }
 
-    std::cout<<"\rFinished Loading links"<<std::endl;
+    std::cout<<"\rFinished Loading Inward links"<<std::endl;
 
     return links;
 }
 
+
+/**
+ * get the inward links (src <- dest) from the provided outward links (src -> dest).
+ */
+std::unordered_map<long, std::vector<long>>* dbUtil::loadInwardLinks_fromOutward(const std::unordered_map<long, std::vector<long>>* outward){
+
+    std::unordered_map<long, std::vector<long>>* inward = new std::unordered_map<long, std::vector<long>>;
+    inward->reserve(outward->size());
+
+    int spinnerState = 0;
+    long rowCount = 0;
+
+    for (const auto& [src, targets] : *outward) {
+        // make sure each page is in the map
+        inward->try_emplace(src);
+
+        for (long t : targets) {
+            // Add reverse edge: t <- src
+            (*inward)[t].push_back(src);
+        }
+
+        rowCount++;
+        if (rowCount % 100000 == 0) {
+            spinner(spinnerState,"\rLoading Inward links ");
+        }
+    }
+    std::cout<<"\rFinished Loading Inward links"<<std::endl;
+    return inward;
+}
 
