@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <omp.h>
+#include <chrono>
 #include <random>
 
 std::vector<std::string> graph::search(long start, long end, bool parallel) {
@@ -39,8 +40,8 @@ std::vector<std::string> graph::search(long start, long end, bool parallel) {
 }
 
 std::vector<std::string> graph::bidirectional_search(long start, long end, bool parallel, std::unordered_map<long, std::vector<long>>* incominglink) {
-    time_t start_t;
-    time(&start_t);
+    using clock_t = std::chrono::steady_clock;
+    auto start_t = clock_t::now();
 
 
     std::vector<std::string> output = { };
@@ -49,9 +50,9 @@ std::vector<std::string> graph::bidirectional_search(long start, long end, bool 
     output_long = bidirectional(start, end, incominglink);
 
     if (output_long.size() == 0) {
-        time_t end_t;
-        time(&end_t);
-        std::cout << "Could not find a path after " << difftime(end_t, start_t) << " seconds." << std::endl;
+        auto end_t = clock_t::now();
+        double seconds = std::chrono::duration<double>(end_t - start_t).count();
+        std::cout << "Could not find a path after " << seconds << " seconds." << std::endl;
         return output;
     }
 
@@ -61,9 +62,9 @@ std::vector<std::string> graph::bidirectional_search(long start, long end, bool 
         std::cout << databaseUtil.getTitle(l) << std::endl;
     }
 
-    time_t end_t;
-    time(&end_t);
-    std::cout << "It took " << difftime(end_t, start_t) << " seconds to find a path." << std::endl;
+    auto end_t = clock_t::now();
+    double seconds = std::chrono::duration<double>(end_t - start_t).count();
+    std::cout << "It took " << seconds << " seconds to find a path." << std::endl;
     return output;
 }
 
@@ -76,7 +77,7 @@ std::vector<long> graph::parallel_bfs(long start, long end) {
     std::unordered_map<long, long> parent;
     std::vector<NodeState> frontier;
     bool found = false;
-
+    std::cout << "Now searching with " << NUM_THREADS << " threads." << std::endl;
     int depth = 0;
 
     frontier.push_back({start, 1});
@@ -297,6 +298,7 @@ std::vector<long> graph::bidirectional(
 
 std::vector<long> graph::parallel_bidirectional(long start, long end, std::unordered_map<long, std::vector<long> > *incoming_link){
     if (start == end) return {start};
+    std::cout << "Using " << NUM_THREADS << " threads" << std::endl;
 
     long maxNode = std::max(start, end);
     for (auto &p : *links) maxNode = std::max(maxNode, p.first);
@@ -670,7 +672,7 @@ void graph::reduceGraphSize(double fractionalSize, std::unordered_map<long, std:
     int reducedEdges = (int) (originalEdges * fractionalSize);
 
     std::mt19937 generator{12345};
-    std::uniform_int_distribution<> range{0, survivingNodes.size()};
+    std::uniform_int_distribution<> range{0, int(survivingNodes.size())};
 
     printf("edges: %d, reducedEdges: %d\n", edges, reducedEdges);
 

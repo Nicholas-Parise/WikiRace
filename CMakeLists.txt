@@ -21,6 +21,8 @@ file(GLOB PAGERANK_SEQUENTIAL src/pageRankSequential.cpp)
 file(GLOB PAGERANK_SHARED_MEMORY src/pageRankSharedMemory.cpp)
 file(GLOB PAGERANK_DISTRIBUTED_MEMORY src/pageRankDistributedMemory.cpp)
 file(GLOB BI src/bidirectional_wikiRace.cpp)
+file(GLOB MPI src/mpi_wikiRace.cpp)
+file(GLOB RANDOM src/random_wikiRace.cpp)
 set(SQLITE_SOURCE src/sqlite3.c)
 
 # Add executable
@@ -30,7 +32,9 @@ add_executable(pageRankSharedMemory ${PAGERANK_SHARED_MEMORY} ${CPP_SOURCES} ${S
 
 add_executable(bidirectional_wikiRace ${BI} ${CPP_SOURCES} ${SQLITE_SOURCE}
         src/bidirectional_wikiRace.cpp)
-
+add_executable(mpi_wikiRace ${MPI} ${CPP_SOURCES} ${SQLITE_SOURCE}
+        src/mpi_wikiRace.cpp)
+add_executable(random_wikiRace ${RANDOM} ${CPP_SOURCES} ${SQLITE_SOURCE})
 # Compile SQLite with FTS5
 set_source_files_properties(${SQLITE_SOURCE} PROPERTIES COMPILE_FLAGS "-DSQLITE_ENABLE_FTS5")
 
@@ -61,4 +65,7 @@ endif()
 
 target_link_libraries(wikiRace PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(bidirectional_wikiRace PRIVATE OpenMP::OpenMP_CXX)
+target_link_libraries(random_wikiRace PRIVATE OpenMP::OpenMP_CXX)
+find_package(MPI REQUIRED)
+target_link_libraries(mpi_wikiRace PRIVATE MPI::MPI_CXX)
 
