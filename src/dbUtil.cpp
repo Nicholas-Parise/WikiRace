@@ -533,7 +533,6 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadInwardLinks_fromOutward
     // set number of threads to amount hardware is capable of using 
     int cores = std::thread::hardware_concurrency();
     int use_threads = cores > MAX_THREADS ? MAX_THREADS : cores;
-    use_threads = 20;
     omp_set_num_threads(use_threads);
 
     // give each omp thread it's own local map to write data into

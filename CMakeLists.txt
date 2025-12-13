@@ -32,8 +32,7 @@ add_executable(pageRankSharedMemory ${PAGERANK_SHARED_MEMORY} ${CPP_SOURCES} ${S
 
 add_executable(bidirectional_wikiRace ${BI} ${CPP_SOURCES} ${SQLITE_SOURCE}
         src/bidirectional_wikiRace.cpp)
-add_executable(mpi_wikiRace ${MPI} ${CPP_SOURCES} ${SQLITE_SOURCE}
-        src/mpi_wikiRace.cpp)
+
 add_executable(random_wikiRace ${RANDOM} ${CPP_SOURCES} ${SQLITE_SOURCE})
 # Compile SQLite with FTS5
 set_source_files_properties(${SQLITE_SOURCE} PROPERTIES COMPILE_FLAGS "-DSQLITE_ENABLE_FTS5")
@@ -48,9 +47,11 @@ find_package(MPI)
 if (MPI_FOUND)
     message(STATUS "MPI found")
     add_executable(pageRankDistributedMemory ${PAGERANK_DISTRIBUTED_MEMORY} ${CPP_SOURCES} ${SQLITE_SOURCE})
+    add_executable(mpi_wikiRace ${MPI} ${CPP_SOURCES} ${SQLITE_SOURCE} src/mpi_wikiRace.cpp)
     target_link_libraries(pageRankDistributedMemory MPI::MPI_CXX)
+    target_link_libraries(mpi_wikiRace PRIVATE MPI::MPI_CXX)
 else()
-    message(WARNING "MPI NOT found")
+    message(WARNING "MPI NOT found. pageRankDistributedMemory and mpi_wikiRace could NOT be compiled")
 endif()
 
 find_package(OpenMP REQUIRED)
@@ -66,6 +67,3 @@ endif()
 target_link_libraries(wikiRace PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(bidirectional_wikiRace PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(random_wikiRace PRIVATE OpenMP::OpenMP_CXX)
-find_package(MPI REQUIRED)
-target_link_libraries(mpi_wikiRace PRIVATE MPI::MPI_CXX)
-
