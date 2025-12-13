@@ -494,6 +494,7 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadInwardLinks_grouped(voi
 
 /**
  * get the inward links (src <- dest) from the provided outward links (src -> dest).
+ * (sequential version)
  */
 std::unordered_map<long, std::vector<long>>* dbUtil::loadInwardLinks_fromOutward(const std::unordered_map<long, std::vector<long>>* outward){
 
@@ -521,3 +522,75 @@ std::unordered_map<long, std::vector<long>>* dbUtil::loadInwardLinks_fromOutward
     return inward;
 }
 
+
+/**
+ * get the inward links (src <- dest) from the provided outward links (src -> dest).
+ * (parallel version)
+*/
+/*
+std::unordered_map<long, std::vector<long>>* dbUtil::loadInwardLinks_fromOutward(const std::unordered_map<long, std::vector<long>>* outward){
+    
+    // set number of threads to amount hardware is capable of using 
+    int cores = std::thread::hardware_concurrency();
+    int use_threads = cores > MAX_THREADS ? MAX_THREADS : cores;
+    use_threads = 20;
+    omp_set_num_threads(use_threads);
+
+    // give each omp thread it's own local map to write data into
+    int num_threads = omp_get_max_threads();
+    std::vector<std::unordered_map<long, std::vector<long>>> thread_maps(num_threads);
+
+    std::cout << "Building inward map using: " << num_threads << " threads"<<std::endl;
+
+    // Split work across threads
+    std::vector<long> keys;
+    keys.reserve(outward->size());
+    for (const auto& kv : *outward)
+        keys.push_back(kv.first);
+
+    // Parallel inversion
+    #pragma omp parallel
+    {
+        int thread_id = omp_get_thread_num();
+        auto& local_map = thread_maps[thread_id];
+
+        // Partition key range
+        size_t N = keys.size();
+        size_t chunk = (N + num_threads - 1) / num_threads;
+        size_t start = thread_id * chunk;
+        size_t end = std::min(N, start + chunk);
+
+        for (size_t i = start; i < end; i++){
+            long src = keys[i];
+            const auto& targets = outward->at(src);
+
+            for (long t : targets)
+                local_map[t].push_back(src);
+
+            local_map.try_emplace(src);
+        }
+    }
+
+    // merge map
+    auto* inward = new std::unordered_map<long, std::vector<long>>;
+    inward->reserve(outward->size());
+    for (auto& tmap : thread_maps) {
+        for (auto& kv : tmap) {
+            auto& vec = (*inward)[kv.first];
+            vec.insert(vec.end(),
+                       std::make_move_iterator(kv.second.begin()),
+                       std::make_move_iterator(kv.second.end()));
+        }
+    }
+
+    //free memory:
+    for (auto& tmap : thread_maps) {
+        tmap.clear();
+    }
+
+    thread_maps.clear();
+
+    std::cout<<"\rFinished building Inward links"<<std::endl;
+    return inward;
+}
+*/

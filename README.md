@@ -4,13 +4,9 @@ A Graph based Wikipedia solver
 Data from: https://dumps.wikimedia.org/enwiki/latest/  
 
 ## Reccomended specs
-minimum  
-8gb of ram  
-4 core cpu   
-
-reccomended  
 16gb of ram  
-8 core cpu  
+8 core cpu w/hyper threading  
+NVME SSD  
 
 ## Setup
 ### Install
