@@ -57,7 +57,7 @@ int main(){
     graph wikiGraph(links, databaseUtil);
 
     bool done = false;
-    while (not done) {
+    while (!done) {
         // Pick two random articles
         auto articles = selectArticles(links);
         long firstArticle = articles.first;
