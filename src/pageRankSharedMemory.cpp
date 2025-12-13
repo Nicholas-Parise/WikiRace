@@ -33,9 +33,9 @@ int main(int argc, char* argv[]){
 
     dbUtil databaseUtil(db);
 
-    std::unordered_map<long, std::vector<long>>* links_inward = databaseUtil.loadLinks_grouped_Threaded();
-    std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadInwardLinks_fromOutward(links_inward);
-    //std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadInwardLinks_grouped();
+    //std::unordered_map<long, std::vector<long>>* links_inward = databaseUtil.loadLinks_grouped_Threaded();
+    //std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadInwardLinks_fromOutward(links_inward);
+    std::unordered_map<long, std::vector<long>>* links = databaseUtil.loadInwardLinks_grouped();
 
     if(fractional_problem_size != 1) // reduce probelm size if neccessary
         graph::reduceGraphSize(fractional_problem_size, links);
