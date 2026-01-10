@@ -14,7 +14,6 @@ std::vector<std::string> graph::search(long start, long end, bool parallel) {
     time_t start_t;
     time(&start_t);
 
-
     std::vector<std::string> output = { };
     std::vector<long> output_long;
     if (parallel) output_long = parallel_bfs(start, end);
@@ -30,7 +29,9 @@ std::vector<std::string> graph::search(long start, long end, bool parallel) {
     std::cout << "Found a path with " << output_long.size() << " steps:" << std::endl;
 
     for (long l : output_long) {
-        std::cout << databaseUtil.getTitle(l) << std::endl;
+        std::string temp = databaseUtil.getTitle(l);
+        std::cout << temp << std::endl;
+        output.push_back(temp);
     }
 
     time_t end_t;
@@ -59,7 +60,9 @@ std::vector<std::string> graph::bidirectional_search(long start, long end, bool 
     std::cout << "Found a path with " << output_long.size() << " steps:" << std::endl;
 
     for (long l : output_long) {
-        std::cout << databaseUtil.getTitle(l) << std::endl;
+        std::string temp = databaseUtil.getTitle(l);
+        std::cout << temp << std::endl;
+        output.push_back(temp);
     }
 
     auto end_t = clock_t::now();

@@ -1,5 +1,7 @@
 ﻿# WikiRace
 
+![wikiRace](media/WikiRace.jpg)
+
 A Graph based Wikipedia solver
 Data from: https://dumps.wikimedia.org/enwiki/latest/  
 
@@ -27,8 +29,17 @@ https://drive.google.com/file/d/1ictDdg47LH-8rf1LApjV6BU3xMDISp0z/view?usp=shari
 ### Compile
 run the provided compile script  
 ```
-cd build
+cd build  
 cmake ..  
-cmake --build .  
-
+cmake --build . --config Release   
 ```
+
+#### Compile SFML 
+Tell Cmake where to find the packages (Changing C:/Path/To/ to where your vcpkg has it installed)  
+```
+cmake .. -G "Ninja" -DCMAKE_TOOLCHAIN_FILE=C:/Path/To/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-mingw-dynamic
+```
+(SFML DLL's will need to be in the root directory of the executable if dynamic).  
+
+## Example output
+![Taylor Swift -> Parallel computing](media/WikiRace.png)
