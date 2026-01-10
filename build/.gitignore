@@ -32,6 +32,7 @@ _CPack_Packages/
 *.ilk
 *.log
 *.tmp
+*.ini
 
 # linux build
 wikiRace
